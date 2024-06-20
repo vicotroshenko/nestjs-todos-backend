@@ -34,12 +34,11 @@ export class UserController {
     console.log('registr');
     const verificationToken = this.userService.createToken(newUser.email);
     await sendEmail.sendRegistration(verificationToken, newUser.email);
-    // const result = await this.userService.registerUser(newUser);
-    // if (!result) {
-    //   throw new HttpException(HttpResponse.BAD_EMAIL, HttpStatus.CONFLICT);
-    // }
-    // res.status(201).send(result);
-    res.send({message: 'success'})
+    const result = await this.userService.registerUser(newUser);
+    if (!result) {
+      throw new HttpException(HttpResponse.BAD_EMAIL, HttpStatus.CONFLICT);
+    }
+    res.status(201).send(result);
   }
 
   @UseGuards(LocalGuard)

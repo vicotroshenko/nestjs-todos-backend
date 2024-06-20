@@ -9,8 +9,4 @@ import { TodosService } from './services/todos.service';
 })
 
 export class TodosModule {}
-// export class TodosModule implements NestModule {
-//   configure(consumer: MiddlewareConsumer) {
-//     consumer.apply(ctrlWrapper).forRoutes(TodosController);
-//   }
-// }
+
