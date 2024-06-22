@@ -1,3 +1,4 @@
+import { PasswordUserDto } from './../dtos/password.dto';
 import { HttpStatus } from '@nestjs/common/enums';
 import {
   Controller,
@@ -12,18 +13,29 @@ import {
 } from '@nestjs/common';
 import { hash } from 'bcrypt';
 import { Request, Response } from 'express';
+import { ApiTags, ApiResponse, ApiBody } from '@nestjs/swagger';
 import HttpResponse from 'src/constants/httpResponse.constant';
 import { USER_ROUTS } from 'src/constants/routs.constant';
+import { EmailUserDto, LoginUserDto, RegisterUserDto } from '../dtos';
 import { UserDto } from './../dtos/user.dto';
 import { UserService } from '../services/user.service';
 import { JwtAuthGuard } from '../guards/jwt.guard';
 import { LocalGuard } from '../guards/local.guard';
 import { sendEmail } from '../heplers/sendEmail.helpre';
 
+@ApiTags('User')
 @Controller(USER_ROUTS.AUTH)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @ApiBody({ type: RegisterUserDto })
+  @ApiResponse({
+    status: 201,
+    description: HttpResponse.CREATED,
+    type: UserDto,
+  })
+  @ApiResponse({ status: 400, description: HttpResponse.BAD_REQUEST })
+  @ApiResponse({ status: 409, description: HttpResponse.BAD_EMAIL })
   @Post(USER_ROUTS.REGISTER)
   async register(@Body() body: UserDto, @Res() res: Response): Promise<void> {
     const hashPassword = await hash(body.password, 10);
@@ -31,7 +43,6 @@ export class UserController {
       ...body,
       password: hashPassword,
     };
-    console.log('registr');
     const verificationToken = this.userService.createToken(newUser.email);
     await sendEmail.sendRegistration(verificationToken, newUser.email);
     const result = await this.userService.registerUser(newUser);
@@ -41,6 +52,13 @@ export class UserController {
     res.status(201).send(result);
   }
 
+  @ApiBody({ type: LoginUserDto })
+  @ApiResponse({
+    status: 200,
+    description: HttpResponse.SUCCESS,
+    type: UserDto,
+  })
+  @ApiResponse({ status: 400, description: HttpResponse.BAD_REQUEST })
   @UseGuards(LocalGuard)
   @Post(USER_ROUTS.LOGIN)
   async login(@Req() req: Request, @Res() res: Response): Promise<void> {
@@ -49,6 +67,8 @@ export class UserController {
     res.send(result);
   }
 
+  @ApiResponse({ status: 200, description: HttpResponse.LOGOUT })
+  @ApiResponse({ status: 400, description: HttpResponse.BAD_REQUEST })
   @UseGuards(JwtAuthGuard)
   @Post(USER_ROUTS.LOGOUT)
   async logout(@Req() req: Request, @Res() res: Response): Promise<void> {
@@ -60,6 +80,12 @@ export class UserController {
     });
   }
 
+  @ApiBody({ type: EmailUserDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Check your email. Confirm reset password',
+  })
+  @ApiResponse({ status: 400, description: HttpResponse.BAD_REQUEST })
   @Post(USER_ROUTS.RESET_PASSWORD)
   async resetPassword(
     @Req() req: Request,
@@ -80,6 +106,14 @@ export class UserController {
     });
   }
 
+  @ApiBody({ type: PasswordUserDto })
+  @ApiResponse({
+    status: 200,
+    description: HttpResponse.SUCCESS,
+    type: UserDto,
+  })
+  @ApiResponse({ status: 400, description: HttpResponse.BAD_REQUEST })
+  @ApiResponse({ status: 404, description: HttpResponse.NOT_FOUND })
   @UseGuards(JwtAuthGuard)
   @Put(USER_ROUTS.CHANGE_PASSWORD)
   async changePassword(
@@ -105,6 +139,8 @@ export class UserController {
     res.status(201).send(result);
   }
 
+  @ApiResponse({ status: 200, description: HttpResponse.VERIFIED })
+  @ApiResponse({ status: 401, description: HttpResponse.UNAUTHORIZED })
   @Get(USER_ROUTS.VERIFY)
   async verify(@Req() req: Request, @Res() res: Response): Promise<void> {
     const { token } = req.params;
@@ -113,6 +149,8 @@ export class UserController {
     if (!result) {
       throw new HttpException(HttpResponse.BAD_TOKEN, HttpStatus.BAD_REQUEST);
     }
-     res.send(`<h3 style="text-align: center">Great! ${HttpResponse.VERIFIED}!</h3>`);
+    res.send(
+      `<h3 style="text-align: center">Great! ${HttpResponse.VERIFIED}!</h3>`,
+    );
   }
 }
